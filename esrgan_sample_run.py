@@ -22,9 +22,8 @@ upsampler = RealESRGANer(
     half=False
 )
 
-# Load and prepare the input image [04:21]
-img = Image.open('image.jpg').convert('RGB')
-img = np.array(img)
+# Load input array directly from .npy [04:21]
+img = np.load('image.npy')
 
 # Upscale the image [04:34]
 output, _ = upsampler.enhance(img, outscale=4)
