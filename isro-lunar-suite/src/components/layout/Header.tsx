@@ -16,7 +16,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenPds4Modal,
 }) => {
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#050505]/75 backdrop-blur-md border-b border-white/10 px-4 lg:px-8 py-3">
+    <header className="sticky top-0 z-40 w-full bg-[#030303]/80 backdrop-blur-md border-b border-white/10 px-4 lg:px-8 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         
         {/* Left: Brand */}

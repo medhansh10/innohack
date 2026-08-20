@@ -234,58 +234,69 @@ export const StarfieldBackground: React.FC<StarfieldBackgroundProps> = ({ appSta
     moonMeshRef.current = moonMesh;
 
     // 3. Dramatic Grazing Sunlight (lighting up the top horizon curve of the Moon)
-    const sunLight = new THREE.DirectionalLight(0xf3ede0, 3.3);
+    const sunLight = new THREE.DirectionalLight(0xd8d0c1, 1.35);
     sunLight.position.set(-3.5, 5.0, 3.0); // Low, grazing light keeps the surface tactile rather than glossy
     scene.add(sunLight);
 
-    const ambientLight = new THREE.AmbientLight(0x070706, 0.16);
+    const ambientLight = new THREE.AmbientLight(0x020202, 0.025);
     scene.add(ambientLight);
 
-    // Deep space background stars
-    const starCount = 280;
-    const starPositions = new Float32Array(starCount * 3);
-    for (let i = 0; i < starCount * 3; i += 3) {
-      starPositions[i] = (Math.random() - 0.5) * 22;
-      starPositions[i + 1] = (Math.random() - 0.5) * 16;
-      starPositions[i + 2] = (Math.random() - 0.5) * 8 - 4;
-    }
-    const starGeo = new THREE.BufferGeometry();
-    starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-    const starMat = new THREE.PointsMaterial({
-      color: 0xe8e4da,
-      size: 0.02,
-      transparent: true,
-      opacity: 0.3,
-    });
-    const stars = new THREE.Points(starGeo, starMat);
-    scene.add(stars);
+    // Layered stars give the sky depth without turning it into a bright starfield.
+    const createStarLayer = (count: number, size: number, opacity: number, depth: number) => {
+      const positions = new Float32Array(count * 3);
+      for (let i = 0; i < count * 3; i += 3) {
+        positions[i] = (Math.random() - 0.5) * 23;
+        positions[i + 1] = (Math.random() - 0.5) * 16;
+        positions[i + 2] = -depth - Math.random() * 3;
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const material = new THREE.PointsMaterial({
+        color: 0xf0eadf,
+        size,
+        transparent: true,
+        opacity,
+        sizeAttenuation: true,
+      });
+      const points = new THREE.Points(geometry, material);
+      scene.add(points);
+      return { geometry, material };
+    };
 
-    // A few restrained meteor streaks—rare enough to preserve the calm, deep-space feel.
+    const starLayers = [
+      createStarLayer(700, 0.014, 0.42, 4),
+      createStarLayer(150, 0.03, 0.72, 2),
+    ];
+
     const meteors: Array<{
-      line: THREE.Line;
+      streak: THREE.Line;
       material: THREE.LineBasicMaterial;
       delay: number;
       speed: number;
+      age: number;
+      duration: number;
     }> = [];
 
-    for (let i = 0; i < 4; i++) {
-      const meteorGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(-0.28, 0.1, 0),
-        new THREE.Vector3(0.3, -0.12, 0),
+    for (let i = 0; i < 3; i++) {
+      const streakGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(1.05, 0.38, 0),
+        new THREE.Vector3(0, 0, 0),
       ]);
-      const meteorMat = new THREE.LineBasicMaterial({
-        color: 0xf5efe2,
+      const material = new THREE.LineBasicMaterial({
+        color: 0xf6f0e3,
         transparent: true,
         opacity: 0,
       });
-      const meteor = new THREE.Line(meteorGeo, meteorMat);
-      meteor.position.set((Math.random() - 0.5) * 10, Math.random() * 5 + 0.5, -2.5);
-      scene.add(meteor);
+      const streak = new THREE.Line(streakGeo, material);
+      streak.position.set((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 7, -2.5);
+      scene.add(streak);
       meteors.push({
-        line: meteor,
-        material: meteorMat,
-        delay: 2 + Math.random() * 7,
-        speed: 0.035 + Math.random() * 0.025,
+        streak,
+        material,
+        delay: 3 + Math.random() * 8,
+        speed: 0.045 + Math.random() * 0.025,
+        age: 0,
+        duration: 0.65 + Math.random() * 0.45,
       });
     }
 
@@ -357,18 +368,25 @@ export const StarfieldBackground: React.FC<StarfieldBackgroundProps> = ({ appSta
         moonMesh.position.z += (targetPosRef.current.z - moonMesh.position.z) * 0.05;
       }
 
+      starLayers[1].material.opacity = 0.62 + Math.sin(clock.elapsedTime * 0.7) * 0.12;
+
       meteors.forEach((meteor) => {
         meteor.delay -= delta;
         if (meteor.delay > 0) return;
 
-        meteor.line.position.x -= meteor.speed * 60 * delta;
-        meteor.line.position.y -= meteor.speed * 22 * delta;
-        meteor.material.opacity = Math.min(0.72, meteor.material.opacity + delta * 5);
+        meteor.age += delta;
+        const progress = meteor.age / meteor.duration;
+        const intensity = Math.pow(Math.sin(Math.min(progress, 1) * Math.PI), 0.55);
+        meteor.streak.position.x -= meteor.speed * 60 * delta;
+        meteor.streak.position.y -= meteor.speed * 22 * delta;
+        meteor.material.opacity = intensity * 0.82;
 
-        if (meteor.line.position.x < -6.5 || meteor.line.position.y < -3.5) {
-          meteor.line.position.set(5.5 + Math.random() * 3.5, 1.5 + Math.random() * 4, -2.5);
+        if (progress >= 1) {
+          meteor.streak.position.set((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 7, -2.5);
           meteor.material.opacity = 0;
-          meteor.delay = 4 + Math.random() * 10;
+          meteor.age = 0;
+          meteor.delay = 5 + Math.random() * 11;
+          meteor.duration = 0.65 + Math.random() * 0.45;
         }
       });
 
@@ -398,17 +416,19 @@ export const StarfieldBackground: React.FC<StarfieldBackgroundProps> = ({ appSta
       renderer.dispose();
       colorTex.dispose();
       elevationTex.dispose();
-      starGeo.dispose();
-      starMat.dispose();
-      meteors.forEach(({ line, material }) => {
-        line.geometry.dispose();
+      starLayers.forEach(({ geometry, material }) => {
+        geometry.dispose();
+        material.dispose();
+      });
+      meteors.forEach(({ streak, material }) => {
+        streak.geometry.dispose();
         material.dispose();
       });
     };
   }, []);
 
   return (
-    <div className="fixed inset-0 z-0 overflow-hidden bg-[#030303]">
+    <div className="fixed inset-0 z-0 overflow-hidden bg-[#010101]">
       <div ref={mountRef} className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing" />
     </div>
   );

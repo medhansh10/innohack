@@ -54,7 +54,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-stone-200 flex flex-col selection:bg-stone-200/20 selection:text-stone-100">
+    <div className="relative min-h-screen bg-[#030303] text-stone-200 flex flex-col selection:bg-stone-200/20 selection:text-stone-100">
       
       {/* Photorealistic 3D Animated Moon Background */}
       <StarfieldBackground appState={appState} />
