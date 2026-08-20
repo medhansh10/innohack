@@ -1,0 +1,115 @@
+# =====================================================================
+# GitIgnore for Satellite Image Enhancement & PDS4 Processing Backend
+# =====================================================================
+
+# --- Virtual Environments (All variations & subpaths) ---
+.venv
+.venv/
+.venv/*
+.venv/**
+venv
+venv/
+venv/*
+venv/**
+env
+env/
+env/*
+env/**
+ENV
+ENV/
+ENV/*
+ENV/**
+*venv*/
+*/.venv/*
+env.bak/
+venv.bak/
+bin/
+lib/
+lib64/
+share/
+Include/
+Include/**
+Lib/
+Lib/**
+Scripts/
+Scripts/**
+pyvenv.cfg
+pip-selfcheck.json
+
+# --- Python Bytecode & Caches ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Application Runtime & Generated Directories ---
+uploads/
+outputs/
+pds4_data/
+tiles/
+temp/
+tmp/
+
+# --- Test Data & Sample Directories ---
+converter_test/
+isro_test/
+test_pds4/
+
+# --- Large Raw Satellite Data & Binary Formats ---
+*.img
+*.IMG
+*.zip
+*.tar
+*.tar.gz
+*.gz
+*.npy
+*.npz
+*.lbr
+*.oat
+*.oath
+*.spm
+
+# --- AI Model Weights & Checkpoints ---
+*.pth
+*.pt
+*.onnx
+*.bin
+*.safetensors
+*.ckpt
+*.h5
+
+# --- Environment Variables & Secrets ---
+.env
+.env.*
+!.env.example
+*.local
+
+# --- Operating System & Editor Files ---
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+ - Copy.gitattributes
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- Log Files ---
+*.log
