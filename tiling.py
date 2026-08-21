@@ -2,66 +2,97 @@ from pathlib import Path
 import numpy as np
 
 
-def create_tiles(
-    input_npy: str,
-    output_dir: str = "tiles",
-    tile_size: int = 512,
-    overlap: int = 64
-):
-    """
-    Split a large .npy satellite image into overlapping tiles.
-    """
+INPUT_NPY = Path("outputs/converted/converted_image.npy")
+TILES_DIR = Path("tiles")
 
-    input_path = Path(input_npy)
-    output_path = Path(output_dir)
+TILE_SIZE = 512
+OVERLAP = 64
+STEP = TILE_SIZE - OVERLAP
 
-    output_path.mkdir(parents=True, exist_ok=True)
 
-    # Load the converted image
-    image = np.load(input_path)
+def create_tiles():
+
+    image = np.load(INPUT_NPY)
 
     height, width = image.shape[:2]
 
     print(f"Input image shape: {image.shape}")
-    print(f"Tile size: {tile_size}")
-    print(f"Overlap: {overlap}")
+    print(f"Tile size: {TILE_SIZE}")
+    print(f"Overlap: {OVERLAP}")
+    print(f"Step: {STEP}")
 
-    if overlap >= tile_size:
-        raise ValueError("Overlap must be smaller than tile size.")
+    TILES_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
 
-    step = tile_size - overlap
+    # Remove old tile files
+    for old_file in TILES_DIR.glob("tile_*"):
+        old_file.unlink()
 
     tile_number = 0
 
-    for y in range(0, height, step):
+    # ---------------------------------------------------------
+    # Scan the ORIGINAL image from top to bottom, left to right
+    # ---------------------------------------------------------
 
-        for x in range(0, width, step):
+    for row, y in enumerate(range(0, height, STEP)):
 
-            # Tile boundaries
-            y_end = min(y + tile_size, height)
-            x_end = min(x + tile_size, width)
+        for col, x in enumerate(range(0, width, STEP)):
 
-            tile = image[y:y_end, x:x_end]
+            y_end = min(
+                y + TILE_SIZE,
+                height
+            )
 
-            # Ignore extremely small edge tiles
+            x_end = min(
+                x + TILE_SIZE,
+                width
+            )
+
+            tile = image[
+                y:y_end,
+                x:x_end
+            ]
+
+            # Ignore extremely small edge pieces
             if tile.shape[0] < 64 or tile.shape[1] < 64:
                 continue
 
-            tile_filename = output_path / f"tile_{tile_number:05d}.npy"
+            tile_path = (
+                TILES_DIR /
+                f"tile_{tile_number:05d}.npy"
+            )
 
-            np.save(tile_filename, tile)
+            np.save(
+                tile_path,
+                tile
+            )
+
+            # Save the ORIGINAL position
+            position_path = (
+                TILES_DIR /
+                f"tile_{tile_number:05d}.txt"
+            )
+
+            with position_path.open(
+                "w",
+                encoding="utf-8"
+            ) as f:
+
+                f.write(f"row={row}\n")
+                f.write(f"col={col}\n")
+                f.write(f"x={x}\n")
+                f.write(f"y={y}\n")
+                f.write(f"width={tile.shape[1]}\n")
+                f.write(f"height={tile.shape[0]}\n")
 
             tile_number += 1
 
+    print()
     print(f"Created {tile_number} tiles.")
-    print(f"Tiles saved to: {output_path}")
+    print(f"Tiles saved to: {TILES_DIR}")
 
 
 if __name__ == "__main__":
-
-    create_tiles(
-        input_npy="outputs/converted/converted_image.npy",
-        output_dir="tiles",
-        tile_size=512,
-        overlap=64
-    )
+    create_tiles()
