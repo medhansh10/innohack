@@ -1,12 +1,9 @@
-import React, { useState } from 'react';
-import { LunarDataset, FilterMode, HapkeParameters } from '../../types/lunar';
+import React from 'react';
+import { LunarDataset } from '../../types/lunar';
 import { ImageCurtainViewer } from './ImageCurtainViewer';
-import { FilterToolbar } from './FilterToolbar';
-import { HapkeControls } from './HapkeControls';
-import { PhotometricChart } from './PhotometricChart';
-import { LunarGlobe3D } from './LunarGlobe3D';
 import { ExportBar } from './ExportBar';
 import { getOutputUrl, EnhancementResult } from '../../api/enhancementApi';
+import { Sparkles, CheckCircle2, Layers } from 'lucide-react';
 
 interface MissionControlProps {
   dataset: LunarDataset;
@@ -19,76 +16,65 @@ export const MissionControl: React.FC<MissionControlProps> = ({
   onShowToast,
   enhancementResult = null,
 }) => {
-  const [currentFilter, setCurrentFilter] = useState<FilterMode>('REGOLITH_MONO');
-  const [currentHapke, setCurrentHapke] = useState<HapkeParameters>(dataset.currentHapke);
-
-  const handleResetHapke = () => {
-    setCurrentHapke(dataset.initialHapke);
-    onShowToast('info', 'Parameters Reset', 'Restored baseline photometric values.');
-  };
-
   const originalUrl = enhancementResult?.original_preview ? getOutputUrl(enhancementResult.original_preview) : undefined;
   const enhancedUrl = enhancementResult?.stitched_demo ? getOutputUrl(enhancementResult.stitched_demo) : undefined;
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 lg:px-8 py-6 space-y-6">
       
-      {/* Top Banner: Target info & Filter bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2">
+      {/* Top Banner: Mission & Product Info */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-white/5">
         <div>
-          <h2 className="text-lg font-bold text-slate-100">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Enhancement Complete</span>
+            </span>
+            <span className="text-xs text-stone-500 font-mono">
+              {dataset.mission} · {dataset.instrument}
+            </span>
+          </div>
+
+          <h2 className="text-2xl font-semibold text-stone-100 tracking-tight">
             {dataset.targetFeature}
           </h2>
-          <p className="text-xs text-slate-400">
-            {dataset.mission} · {dataset.instrument} · {dataset.targetCoordinates.latStr}, {dataset.targetCoordinates.lonStr}
-          </p>
         </div>
 
-        <FilterToolbar
-          currentFilter={currentFilter}
-          onSelectFilter={setCurrentFilter}
-        />
-      </div>
-
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Left Column: Image Viewer (7 cols) */}
-        <div className="lg:col-span-7 flex flex-col space-y-4">
-          <ImageCurtainViewer
-            dataset={dataset}
-            currentFilter={currentFilter}
-            currentHapke={currentHapke}
-            originalImageUrl={originalUrl}
-            enhancedImageUrl={enhancedUrl}
-          />
-        </div>
-
-        {/* Right Column: Hapke Calibration (5 cols) */}
-        <div className="lg:col-span-5 flex flex-col space-y-4">
-          <HapkeControls
-            currentHapke={currentHapke}
-            initialHapke={dataset.initialHapke}
-            onChangeHapke={setCurrentHapke}
-            onResetHapke={handleResetHapke}
-          />
+        {/* Quick Stats Pill */}
+        <div className="flex items-center gap-3 bg-stone-900/60 border border-white/10 px-4 py-2 rounded-xl text-xs text-stone-300">
+          <div className="flex items-center gap-1.5">
+            <Layers className="w-4 h-4 text-sky-400" />
+            <span className="text-stone-400">Pipeline:</span>
+            <span className="font-mono font-medium text-stone-200">Real-ESRGAN x4</span>
+          </div>
+          {enhancementResult?.processing_time_seconds ? (
+            <div className="flex items-center gap-1.5 pl-3 border-l border-white/10">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span className="font-mono text-stone-200">{enhancementResult.processing_time_seconds}s</span>
+            </div>
+          ) : null}
         </div>
       </div>
 
-      {/* Secondary Bottom Grid: Chart & 3D Target Globe */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <PhotometricChart
-          currentHapke={currentHapke}
-          nominalIncidence={dataset.geometry.incidenceDeg}
+      {/* Main Full-Width Visualizer */}
+      <div className="w-full">
+        <ImageCurtainViewer
+          originalImageUrl={originalUrl}
+          enhancedImageUrl={enhancedUrl}
+          datasetName={dataset.targetFeature}
+          imageWidth={enhancementResult?.image_width}
+          imageHeight={enhancementResult?.image_height}
+          processedTiles={enhancementResult?.processed_tiles}
+          totalTiles={enhancementResult?.total_tiles}
+          processingTime={enhancementResult?.processing_time_seconds}
         />
-
-        <LunarGlobe3D dataset={dataset} />
       </div>
 
       {/* Export Bar */}
       <ExportBar
         dataset={dataset}
-        currentHapke={currentHapke}
+        originalImageUrl={originalUrl}
+        enhancedImageUrl={enhancedUrl}
         onShowToast={onShowToast}
       />
     </div>

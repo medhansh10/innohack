@@ -47,7 +47,9 @@ app.mount("/outputs", StaticFiles(directory=str(OUTPUT_DIR)), name="outputs")
 TILE_SIZE = 512
 OVERLAP = 64
 STEP = TILE_SIZE - OVERLAP
-DEMO_TILES = 45
+DEMO_GRID_ROWS = 2
+DEMO_GRID_COLS = 2
+DEMO_TILES = DEMO_GRID_ROWS * DEMO_GRID_COLS  # 4 tiles for fast, high-res 2D patch
 
 
 @app.get("/")
@@ -62,6 +64,40 @@ def health():
     return {
         "status": "healthy"
     }
+
+
+def find_best_feature_region(image: np.ndarray, patch_w: int, patch_h: int):
+    """
+    Scans the satellite swath to find the most illuminated and feature-rich
+    lunar terrain region with good contrast and mean brightness.
+    """
+    h, w = image.shape[:2]
+    best_score = -1.0
+    best_y, best_x = 0, 0
+
+    step_y = max(1000, h // 60)
+    step_x = max(1, (w - patch_w) // 4)
+
+    for y in range(0, max(1, h - patch_h), step_y):
+        for x in range(0, max(1, w - patch_w), step_x):
+            patch = image[y:y + patch_h, x:x + patch_w]
+            mean = float(patch.mean())
+            std = float(patch.std())
+
+            # Favor patches with healthy illumination (50-200) and strong terrain variance
+            if 35 < mean < 230 and std > 5:
+                score = std * (1.0 - abs(mean - 130.0) / 140.0)
+                if score > best_score:
+                    best_score = score
+                    best_y, best_x = y, x
+
+    if best_score <= 0:
+        # Fallback to middle of swath
+        best_y = max(0, (h - patch_h) // 2)
+        best_x = max(0, (w - patch_w) // 2)
+
+    print(f"Optimal lunar feature region selected at y={best_y}, x={best_x} (score={best_score:.2f})")
+    return best_y, best_x
 
 
 def create_tiles(input_npy: Path):
@@ -98,154 +134,143 @@ def create_tiles(input_npy: Path):
     return tile_number
 
 
-def process_demo_tiles():
+def process_demo_tiles(npy_path: Path):
+    """
+    Selects the optimal 2D patch of illuminated lunar terrain, applies adaptive contrast stretch,
+    and enhances them with Real-ESRGAN.
+    """
+    image = np.load(npy_path)
+    patch_w = (DEMO_GRID_COLS - 1) * STEP + TILE_SIZE
+    patch_h = (DEMO_GRID_ROWS - 1) * STEP + TILE_SIZE
 
-    npy_files = sorted(TILES_DIR.glob("tile_*.npy"))
-
-    total = min(DEMO_TILES, len(npy_files))
-
-    print(f"Processing {total} tiles for demo...")
+    best_y, best_x = find_best_feature_region(image, patch_w, patch_h)
 
     processed_tiles = []
+    tile_idx = 0
 
-    for index, npy_path in enumerate(npy_files[:DEMO_TILES]):
+    for r in range(DEMO_GRID_ROWS):
+        for c in range(DEMO_GRID_COLS):
+            y0 = best_y + r * STEP
+            x0 = best_x + c * STEP
+            y1 = min(image.shape[0], y0 + TILE_SIZE)
+            x1 = min(image.shape[1], x0 + TILE_SIZE)
 
-        print()
-        print(f"Processing tile {index + 1}/{total}")
+            raw_tile = image[y0:y1, x0:x1].copy()
 
-        tile = np.load(npy_path)
+            # Dynamic range contrast stretch for visibility
+            p1, p99 = np.percentile(raw_tile, [1, 99])
+            stretched = np.clip(
+                (raw_tile.astype(float) - p1) / max(p99 - p1, 1e-5) * 255.0,
+                0,
+                255
+            ).astype(np.uint8)
 
-        png_path = TILES_DIR / f"{npy_path.stem}.png"
-        enhanced_path = TILES_DIR / f"{npy_path.stem}_enhanced.png"
+            png_path = TILES_DIR / f"tile_{tile_idx:05d}.png"
+            enhanced_path = TILES_DIR / f"tile_{tile_idx:05d}_enhanced.png"
 
-        # NPY → PNG
-        Image.fromarray(tile).save(png_path)
+            Image.fromarray(stretched).save(png_path)
+            print(f"AI input: {png_path}")
 
-        print(f"AI input: {png_path}")
+            enhance_image(str(png_path), str(enhanced_path))
+            processed_tiles.append(enhanced_path)
+            print(f"Enhanced: {enhanced_path}")
 
-        # PNG → Real-ESRGAN
-        enhance_image(
-            str(png_path),
-            str(enhanced_path)
-        )
+            tile_idx += 1
 
-        processed_tiles.append(enhanced_path)
-
-        print(f"Enhanced: {enhanced_path}")
-
-    return processed_tiles
+    return processed_tiles, best_y, best_x
 
 
-def stitch_demo_tiles():
-
+def stitch_demo_tiles(npy_path: Path, best_y: int, best_x: int):
+    """
+    Stitches a 2D patch of enhanced tiles AND extracts the matching original crop
+    so both original_preview.png and stitched_demo.png have identical coverage, high contrast, and aspect ratio.
+    """
     enhanced_tiles = []
+    num_to_stitch = min(DEMO_TILES, len(list(TILES_DIR.glob("tile_*_enhanced.png"))))
 
-    for i in range(DEMO_TILES):
-
+    for i in range(num_to_stitch):
         tile_path = TILES_DIR / f"tile_{i:05d}_enhanced.png"
-
         if not tile_path.exists():
-            raise FileNotFoundError(
-                f"Missing enhanced tile: {tile_path}"
-            )
+            break
 
-        image = np.array(
-            Image.open(tile_path).convert("RGB")
-        )
-
+        image = np.array(Image.open(tile_path).convert("RGB"))
         enhanced_tiles.append(image)
 
-    # The first 10 tiles are from the first row
-    positions = []
+    if not enhanced_tiles:
+        raise FileNotFoundError("No enhanced tiles found to stitch.")
 
-    for i in range(DEMO_TILES):
+    # Determine tile dimensions after enhancement (e.g. 4x upscale)
+    enh_h, enh_w = enhanced_tiles[0].shape[:2]
+    upscale_factor = enh_w / TILE_SIZE
+    enh_overlap = int(round(OVERLAP * upscale_factor))
+    enh_step = enh_w - enh_overlap
 
-        x = i * STEP
-        y = 0
+    cols = min(DEMO_GRID_COLS, len(enhanced_tiles))
+    rows = int(np.ceil(len(enhanced_tiles) / cols))
 
-        positions.append((y, x))
+    output_width = (cols - 1) * enh_step + enh_w
+    output_height = (rows - 1) * enh_step + enh_h
 
-    output_height = TILE_SIZE
-    output_width = (
-        positions[-1][1] + TILE_SIZE
-    )
+    canvas = np.zeros((output_height, output_width, 3), dtype=np.float32)
+    weights = np.zeros((output_height, output_width, 1), dtype=np.float32)
 
-    print(
-        f"Stitched demo size: "
-        f"{output_width} x {output_height}"
-    )
-
-    canvas = np.zeros(
-        (output_height, output_width, 3),
-        dtype=np.float32
-    )
-
-    weights = np.zeros(
-        (output_height, output_width, 1),
-        dtype=np.float32
-    )
-
-    for tile, (y, x) in zip(
-        enhanced_tiles,
-        positions
-    ):
+    for idx, tile in enumerate(enhanced_tiles):
+        r = idx // cols
+        c = idx % cols
+        y = r * enh_step
+        x = c * enh_step
 
         h, w = tile.shape[:2]
-
-        # Make sure the tile fits inside the canvas
         h = min(h, output_height - y)
         w = min(w, output_width - x)
-
         tile = tile[:h, :w]
 
-        weight = np.ones(
-            (h, w, 1),
-            dtype=np.float32
-        )
+        weight = np.ones((h, w, 1), dtype=np.float32)
+        if c > 0 and enh_overlap > 0:
+            blend_w = min(enh_overlap, w)
+            for i in range(blend_w):
+                weight[:, i, 0] *= ((i + 1) / blend_w)
+        if r > 0 and enh_overlap > 0:
+            blend_h = min(enh_overlap, h)
+            for j in range(blend_h):
+                weight[j, :, 0] *= ((j + 1) / blend_h)
 
-        # Blend horizontal overlap
-        if x > 0:
+        canvas[y:y + h, x:x + w] += tile.astype(np.float32) * weight
+        weights[y:y + h, x:x + w] += weight
 
-            blend_width = min(OVERLAP, w)
+    canvas = canvas / np.maximum(weights, 1e-8)
+    canvas = np.clip(canvas, 0, 255).astype(np.uint8)
 
-            for i in range(blend_width):
+    stitched_img = Image.fromarray(canvas)
+    max_dim = 1536
+    if max(stitched_img.size) > max_dim:
+        stitched_img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
 
-                weight[:, i, 0] = (
-                    (i + 1) / blend_width
-                )
+    stitched_path = OUTPUT_DIR / "stitched_demo.png"
+    stitched_img.save(stitched_path, "PNG", optimize=True)
+    print(f"Stitched demo saved to: {stitched_path} ({stitched_img.size})")
 
-        canvas[
-            y:y + h,
-            x:x + w
-        ] += tile.astype(np.float32) * weight
+    # Generate matched original preview with contrast stretch
+    raw_data = np.load(npy_path)
+    orig_crop_w = min(raw_data.shape[1] - best_x, (cols - 1) * STEP + TILE_SIZE)
+    orig_crop_h = min(raw_data.shape[0] - best_y, (rows - 1) * STEP + TILE_SIZE)
 
-        weights[
-            y:y + h,
-            x:x + w
-        ] += weight
-
-    canvas = canvas / np.maximum(
-        weights,
-        1e-8
-    )
-
-    canvas = np.clip(
-        canvas,
+    raw_crop = raw_data[best_y:best_y + orig_crop_h, best_x:best_x + orig_crop_w].copy()
+    p1, p99 = np.percentile(raw_crop, [1, 99])
+    raw_stretched = np.clip(
+        (raw_crop.astype(float) - p1) / max(p99 - p1, 1e-5) * 255.0,
         0,
         255
     ).astype(np.uint8)
 
-    stitched_path = OUTPUT_DIR / "stitched_demo.png"
+    raw_img = Image.fromarray(raw_stretched).convert("RGB")
+    raw_img = raw_img.resize(stitched_img.size, Image.Resampling.LANCZOS)
 
-    Image.fromarray(canvas).save(
-        stitched_path
-    )
+    original_preview_path = OUTPUT_DIR / "original_preview.png"
+    raw_img.save(original_preview_path, "PNG", optimize=True)
+    print(f"Matched original preview saved to: {original_preview_path} ({raw_img.size})")
 
-    print(
-        f"Stitched demo saved to: {stitched_path}"
-    )
-
-    return stitched_path
+    return stitched_path, original_preview_path
 
 
 @app.post("/upload-pds4")
@@ -365,32 +390,14 @@ async def upload_pds4(
         )
 
     # ---------------------------------------------------------
-    # 5b. Generate original preview PNG
+    # 5b. Get image dimensions
     # ---------------------------------------------------------
-
-    original_preview_path = OUTPUT_DIR / "original_preview.png"
 
     try:
         npy_data = np.load(npy_path)
-        image_height, image_width = npy_data.shape[:2]
-
-        # Normalize to 0-255 for preview
-        preview = npy_data.copy()
-        if preview.dtype != np.uint8:
-            p_min, p_max = np.percentile(preview, [2, 98])
-            preview = np.clip((preview - p_min) / max(p_max - p_min, 1e-8) * 255, 0, 255).astype(np.uint8)
-
-        Image.fromarray(preview).save(original_preview_path)
-        print(f"Original preview saved: {original_preview_path}")
-    except Exception as e:
-        print(f"Warning: could not generate original preview: {e}")
-        original_preview_path = None
-        # Still try to get dimensions from the NPY
-        try:
-            npy_data = np.load(npy_path)
-            image_height, image_width = npy_data.shape[:2]
-        except Exception:
-            image_height, image_width = 0, 0
+        image_height, image_width = int(npy_data.shape[0]), int(npy_data.shape[1])
+    except Exception:
+        image_height, image_width = 0, 0
 
     # ---------------------------------------------------------
     # 6. Create tiles
@@ -401,11 +408,11 @@ async def upload_pds4(
     )
 
     # ---------------------------------------------------------
-    # 7. Process first N tiles
+    # 7. Process optimal illuminated tiles
     # ---------------------------------------------------------
 
     try:
-        processed_tiles = process_demo_tiles()
+        processed_tiles, best_y, best_x = process_demo_tiles(npy_path)
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -413,11 +420,11 @@ async def upload_pds4(
         )
 
     # ---------------------------------------------------------
-    # 8. Stitch the enhanced tiles
+    # 8. Stitch the enhanced tiles & generate matched original preview
     # ---------------------------------------------------------
 
     try:
-        stitched_path = stitch_demo_tiles()
+        stitched_path, original_preview_path = stitch_demo_tiles(npy_path, best_y, best_x)
     except Exception as e:
         raise HTTPException(
             status_code=500,

@@ -36,9 +36,8 @@ export const Header: React.FC<HeaderProps> = ({
         {appState === 'DASHBOARD' && (
           <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs text-slate-300">
             <Globe className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-slate-400">Target:</span>
+            <span className="text-slate-400">Dataset:</span>
             <span className="text-slate-200 font-medium">{dataset.targetFeature}</span>
-            <span className="text-slate-500 font-mono text-[11px]">({dataset.targetCoordinates.latStr})</span>
           </div>
         )}
 
