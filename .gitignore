@@ -36,6 +36,8 @@ venv.bak/
 *venv*/
 *_env*/
 *env/
+virtualenv/
+.virtualenv/
 pyvenv.cfg
 pip-selfcheck.json
 .Python
