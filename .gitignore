@@ -1,0 +1,128 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments & Package Managers
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+*venv*/
+*_env*/
+*env/
+pyvenv.cfg
+pip-selfcheck.json
+.Python
+
+# Windows / Unix virtualenv folders if created at root
+[Ss]cripts/
+[Ii]nclude/
+[Ll]ib/
+[Ll]ib64/
+[Bb]in/
+[Ss]hare/
+site-packages/
+
+# Conda / Poetry / Pipenv / UV
+.conda/
+conda-meta/
+.conda_env/
+.uv/
+.pdm-python
+.pdm.toml
+Pipfile.lock
+poetry.lock
+
+
+# Project-specific outputs & generated files
+output/
+outputs/
+results/
+*.png
+*.jpg
+*.jpeg
+*.tif
+*.tiff
+*.raw
+*.img
+
+# Large datasets & archive files
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# Pytest & coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# Logs and databases
+*.log
+*.sqlite
+*.sqlite3
+*.db
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+
+# IDEs and Code Editors
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+
+# Operating System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
