@@ -1,3 +1,70 @@
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments (all variations)
+.venv
+.venv/
+.venv/**
+venv
+venv/
+venv/**
+env/
+env/**
+ENV/
+ENV/**
+pyvenv.cfg
+pip-selfcheck.json
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Operating System files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Application generated data & runtime folders
+uploads/
+outputs/
+tiles/
+pds4_data/
+temp/
+tmp/
+
+# Large satellite datasets & archives
+*.zip
+*.tar
+*.tar.gz
+*.gz
+*.img
+*.IMG
+*.npy
+*.npz
+
+# AI model weights & checkpoints
+*.pth
+*.pt
+*.onnx
+*.safetensors
+*.bin
+
+# Log files
+*.log
+
+# Dataset-specific extracted files
 ch2_ohr_ncp_20260103T1005176450_d_img_d18.img
 ch2_ohr_ncp_20260103T1005176450_d_img_d18.xml
 ch2_ohr_ncp_20260103T1005176450_d_img_d18/miscellaneous/readme.txt
