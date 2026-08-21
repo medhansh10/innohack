@@ -71,8 +71,8 @@ export const ExportBar: React.FC<ExportBarProps> = ({
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-[#090d16] border border-slate-800/80 shadow-xl">
-      <span className="text-xs text-slate-400 font-medium">
+    <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-sm bg-[#0a0a09] border border-white/10 shadow-xl">
+      <span className="text-xs text-stone-400 font-mono">
         Export Processed Imagery:
       </span>
 
@@ -80,26 +80,26 @@ export const ExportBar: React.FC<ExportBarProps> = ({
         <button
           onClick={() => downloadImage(enhancedImageUrl, `${dataset.id}_enhanced.png`)}
           disabled={!enhancedImageUrl}
-          className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-lg shadow-sky-600/20"
+          className="px-4 py-2 rounded-sm bg-stone-100 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed text-stone-950 text-xs font-semibold flex items-center gap-2 transition-all shadow-md"
         >
-          <Sparkles className="w-4 h-4" />
+          <Sparkles className="w-3.5 h-3.5" />
           <span>Download AI Enhanced PNG</span>
         </button>
 
         <button
           onClick={() => downloadImage(originalImageUrl, `${dataset.id}_original.png`)}
           disabled={!originalImageUrl}
-          className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 text-xs font-medium flex items-center gap-1.5 transition-colors"
+          className="px-3.5 py-2 rounded-sm bg-stone-900/80 hover:bg-stone-800 border border-white/10 disabled:opacity-40 disabled:cursor-not-allowed text-stone-300 text-xs font-medium flex items-center gap-1.5 transition-colors"
         >
-          <ImageIcon className="w-3.5 h-3.5 text-slate-400" />
+          <ImageIcon className="w-3.5 h-3.5 text-stone-400" />
           <span>Original Crop</span>
         </button>
 
         <button
           onClick={exportScientificReport}
-          className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-medium flex items-center gap-1.5 transition-colors"
+          className="px-3.5 py-2 rounded-sm bg-stone-900/80 hover:bg-stone-800 border border-white/10 text-stone-300 text-xs font-medium flex items-center gap-1.5 transition-colors"
         >
-          <FileText className="w-3.5 h-3.5 text-slate-400" />
+          <FileText className="w-3.5 h-3.5 text-stone-400" />
           <span>Summary Report</span>
         </button>
       </div>

@@ -5,6 +5,11 @@
 @layer base {
   :root {
     color-scheme: dark;
+    --background: #050507;
+    --foreground: #f4f4f5;
+    --muted: #18181b;
+    --muted-foreground: #71717a;
+    --border: rgba(255, 255, 255, 0.08);
   }
   
   body {
@@ -25,6 +30,24 @@
   }
   ::-webkit-scrollbar-thumb:hover {
     background: #706c63;
+  }
+}
+
+@keyframes pixel-on {
+  0%, 100% {
+    opacity: 0.12;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer-text {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
   }
 }
 

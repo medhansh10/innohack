@@ -28,13 +28,19 @@ export const UploadDropzone: React.FC<UploadDropzoneProps> = ({
     e.preventDefault();
     setIsDragging(false);
     if (!disabled && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      onFileSelected(e.dataTransfer.files[0]);
+      const file = e.dataTransfer.files[0];
+      if (file.name.toLowerCase().endsWith('.zip')) {
+        onFileSelected(file);
+      }
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!disabled && e.target.files && e.target.files.length > 0) {
-      onFileSelected(e.target.files[0]);
+      const file = e.target.files[0];
+      if (file.name.toLowerCase().endsWith('.zip')) {
+        onFileSelected(file);
+      }
     }
   };
 
@@ -57,7 +63,7 @@ export const UploadDropzone: React.FC<UploadDropzoneProps> = ({
         <input
           ref={fileInputRef}
           type="file"
-          accept=".zip,.xml,.img,.raw,.png,.jpg,.jpeg,.tif,.tiff"
+          accept=".zip,application/zip,application/x-zip-compressed"
           className="hidden"
           onChange={handleFileChange}
           disabled={disabled}
@@ -70,10 +76,10 @@ export const UploadDropzone: React.FC<UploadDropzoneProps> = ({
 
           <div className="flex-1 min-w-0">
             <h3 className="text-base font-medium text-stone-100 tracking-tight mb-1">
-              Upload Lunar Imagery / PDS4 Archive
+              Upload Chandrayaan PDS4 Archive
             </h3>
             <p className="text-xs text-stone-400 leading-relaxed mb-4">
-              Drag & drop telemetry files, .zip archives, or lunar imagery here to begin photometric correction.
+              Drag & drop a Chandrayaan-2 PDS4 .ZIP archive to begin AI super-resolution and Hapke photometric validation.
             </p>
 
             <div className="flex items-center gap-3">
@@ -82,12 +88,12 @@ export const UploadDropzone: React.FC<UploadDropzoneProps> = ({
                 disabled={disabled}
                 className="px-4 py-2 rounded-sm bg-stone-100 text-stone-950 hover:bg-white font-semibold text-xs transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span>Select File</span>
+                <span>Select ZIP Archive</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
 
               <span className="text-[11px] text-stone-500 font-mono">
-                .ZIP · .IMG · .PNG · .TIF
+                .ZIP Archive only
               </span>
             </div>
           </div>
@@ -98,7 +104,7 @@ export const UploadDropzone: React.FC<UploadDropzoneProps> = ({
       <div className="flex items-center justify-between px-4 py-2.5 rounded-sm bg-black/50 backdrop-blur-md border border-white/10 text-xs text-stone-400">
         <span className="flex items-center gap-1.5">
           <FileArchive className="w-3.5 h-3.5 text-stone-500" />
-          <span>No file available?</span>
+          <span>No ZIP archive at hand?</span>
         </span>
         
         <button
@@ -107,7 +113,7 @@ export const UploadDropzone: React.FC<UploadDropzoneProps> = ({
           disabled={disabled}
           className="text-stone-200 hover:text-white font-medium transition-colors hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Load Chandrayaan Sample Swath →
+          Load Sample Swath →
         </button>
       </div>
     </div>

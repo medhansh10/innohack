@@ -14,6 +14,60 @@ const API_BASE_URL: string =
 
 // --------------- Types ---------------
 
+export interface HapkeGeometry {
+  incidence_angle_deg: number;
+  sun_elevation_deg: number;
+  derived_emission_angle_deg: number;
+  nominal_phase_angle_deg: number;
+  roll_deg: number;
+  pitch_deg: number;
+  sun_azimuth_deg: number;
+  target: string;
+  instrument: string;
+}
+
+export interface HapkeParameters {
+  w: number;
+  b: number;
+  c: number;
+  B0: number;
+  h: number;
+}
+
+export interface HapkeReliabilityStats {
+  deep_shadow_area_pct: number;
+  penumbra_area_pct: number;
+  illuminated_area_pct: number;
+  mean_pixel_confidence_pct: number;
+}
+
+export interface HapkeFeatureBreakdown {
+  name: string;
+  area_pct: number;
+  status: string;
+  badge: string;
+  color: 'emerald' | 'amber' | 'rose' | string;
+  description: string;
+}
+
+export interface HapkeImages {
+  confidence_heatmap: string;
+  confidence_overlay: string;
+  shadow_mask: string;
+}
+
+export interface HapkeAnalysis {
+  geometry: HapkeGeometry;
+  hapke_parameters: HapkeParameters;
+  theoretical_reflectance_if: number;
+  opposition_surge_active: boolean;
+  opposition_surge_note: string;
+  reliability_stats: HapkeReliabilityStats;
+  executive_briefing: string;
+  images: HapkeImages;
+  feature_breakdown: HapkeFeatureBreakdown[];
+}
+
 export interface EnhancementResult {
   message: string;
   filename: string;
@@ -27,6 +81,7 @@ export interface EnhancementResult {
   image_width: number;
   image_height: number;
   processing_time_seconds: number;
+  hapke_analysis?: HapkeAnalysis | null;
 }
 
 // --------------- Helpers ---------------
@@ -101,5 +156,18 @@ export async function checkHealth(): Promise<boolean> {
     return data.status === 'healthy';
   } catch {
     return false;
+  }
+}
+
+/**
+ * Fetch existing Hapke photometric analysis from backend.
+ */
+export async function fetchHapkeAnalysis(): Promise<HapkeAnalysis | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/hapke-analysis`, { method: 'GET' });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
   }
 }
