@@ -10,11 +10,20 @@ import { MissionControl } from './components/dashboard/MissionControl';
 import { PDS4MetadataModal } from './components/dashboard/PDS4MetadataModal';
 import { Compass, ShieldCheck, Orbit } from 'lucide-react';
 
+import { uploadPds4Zip, getOutputUrl, EnhancementResult } from './api/enhancementApi';
+
 export const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('PRE_FLIGHT');
   const [activeDataset, setActiveDataset] = useState<LunarDataset>(CHANDRAYAAN_PRESETS[0]);
   const [isPds4ModalOpen, setIsPds4ModalOpen] = useState<boolean>(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  // Upload / enhancement states
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [enhancementResult, setEnhancementResult] = useState<EnhancementResult | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
 
   const showToast = (
     type: 'success' | 'info' | 'warning' | 'error',
@@ -29,19 +38,41 @@ export const App: React.FC = () => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const handleFileIngest = (fileName: string) => {
+  const handleFileIngest = async (file: File) => {
+    // Create a lightweight dataset entry so UI shows the incoming file
     const customDataset: LunarDataset = {
       ...CHANDRAYAAN_PRESETS[0],
-      id: `CUSTOM_${fileName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`,
-      productUri: `URN:ISRO:PDS4:${fileName.toUpperCase()}`,
-      targetFeature: `Lunar Swath: ${fileName}`,
+      id: `CUSTOM_${file.name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`,
+      productUri: `URN:ISRO:PDS4:${file.name.toUpperCase()}`,
+      targetFeature: `Lunar Swath: ${file.name}`,
     };
+
     setActiveDataset(customDataset);
+    setUploadedFile(file);
+    setUploadError(null);
+    setIsDemoMode(false);
+    setIsUploading(true);
     setAppState('PROCESSING');
+
+    try {
+      const result = await uploadPds4Zip(file);
+      setEnhancementResult(result);
+      setIsUploading(false);
+      showToast('success', 'Processing complete', 'Image enhancement finished.');
+      setAppState('DASHBOARD');
+    } catch (err: any) {
+      const msg = err?.message || 'Upload failed';
+      setUploadError(msg);
+      setIsUploading(false);
+      showToast('error', 'Upload failed', msg);
+      setAppState('PRE_FLIGHT');
+    }
   };
 
   const handleDemoSelect = () => {
     setActiveDataset(CHANDRAYAAN_PRESETS[0]);
+    setIsDemoMode(true);
+    setIsUploading(false);
     setAppState('PROCESSING');
   };
 
@@ -51,6 +82,11 @@ export const App: React.FC = () => {
 
   const handleReset = () => {
     setAppState('PRE_FLIGHT');
+    setEnhancementResult(null);
+    setUploadedFile(null);
+    setUploadError(null);
+    setIsUploading(false);
+    setIsDemoMode(false);
   };
 
   return (
@@ -96,6 +132,7 @@ export const App: React.FC = () => {
               <UploadDropzone
                 onFileSelected={handleFileIngest}
                 onDemoSelected={handleDemoSelect}
+                disabled={isUploading}
               />
             </div>
 
@@ -129,6 +166,9 @@ export const App: React.FC = () => {
             <TelemetryTerminal
               dataset={activeDataset}
               onComplete={handleProcessingComplete}
+              isProcessing={isUploading}
+              isDemoMode={isDemoMode}
+              error={uploadError}
             />
           </div>
         )}
@@ -138,6 +178,7 @@ export const App: React.FC = () => {
           <MissionControl
             dataset={activeDataset}
             onShowToast={showToast}
+            enhancementResult={enhancementResult}
           />
         )}
       </main>

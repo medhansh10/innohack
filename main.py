@@ -1,5 +1,8 @@
 import sys
-from fastapi import FastAPI, UploadFile, File
+import time
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import shutil
 import subprocess
@@ -16,6 +19,18 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# --------------- CORS ---------------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 UPLOAD_DIR = Path("uploads")
 OUTPUT_DIR = Path("outputs")
@@ -24,6 +39,9 @@ TILES_DIR = Path("tiles")
 UPLOAD_DIR.mkdir(exist_ok=True)
 OUTPUT_DIR.mkdir(exist_ok=True)
 TILES_DIR.mkdir(exist_ok=True)
+
+# --------------- Serve output images ---------------
+app.mount("/outputs", StaticFiles(directory=str(OUTPUT_DIR)), name="outputs")
 
 
 TILE_SIZE = 512
@@ -235,6 +253,8 @@ async def upload_pds4(
     file: UploadFile = File(...)
 ):
 
+    start_time = time.time()
+
     # ---------------------------------------------------------
     # 1. Save uploaded ZIP
     # ---------------------------------------------------------
@@ -253,26 +273,24 @@ async def upload_pds4(
     # 2. Extract PDS4
     # ---------------------------------------------------------
 
-    result = extract_pds4(
-        str(zip_path)
-    )
+    try:
+        result = extract_pds4(
+            str(zip_path)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Failed to extract PDS4 archive: {e}"
+        )
 
     matched_pairs = result["matched_pairs"]
 
     if not matched_pairs:
 
-        return {
-            "message": "No matching IMG + XML pair was found.",
-            "filename": file.filename,
-            "img_files": [
-                str(path)
-                for path in result["img_files"]
-            ],
-            "xml_files": [
-                str(path)
-                for path in result["xml_files"]
-            ]
-        }
+        raise HTTPException(
+            status_code=422,
+            detail="No matching IMG + XML pair was found in the uploaded archive."
+        )
 
     # ---------------------------------------------------------
     # 3. Select matching IMG + XML
@@ -324,11 +342,10 @@ async def upload_pds4(
 
     if conversion_result.returncode != 0:
 
-        return {
-            "message": "IMG to NPY conversion failed.",
-            "converter_output": conversion_result.stdout,
-            "converter_error": conversion_result.stderr
-        }
+        raise HTTPException(
+            status_code=500,
+            detail=f"IMG to NPY conversion failed: {conversion_result.stderr[:500]}"
+        )
 
     print(conversion_result.stdout)
 
@@ -342,10 +359,38 @@ async def upload_pds4(
 
     if not npy_path.exists():
 
-        return {
-            "message": "NPY conversion completed but file was not found.",
-            "expected_npy": str(npy_path)
-        }
+        raise HTTPException(
+            status_code=500,
+            detail="NPY conversion completed but the output file was not found."
+        )
+
+    # ---------------------------------------------------------
+    # 5b. Generate original preview PNG
+    # ---------------------------------------------------------
+
+    original_preview_path = OUTPUT_DIR / "original_preview.png"
+
+    try:
+        npy_data = np.load(npy_path)
+        image_height, image_width = npy_data.shape[:2]
+
+        # Normalize to 0-255 for preview
+        preview = npy_data.copy()
+        if preview.dtype != np.uint8:
+            p_min, p_max = np.percentile(preview, [2, 98])
+            preview = np.clip((preview - p_min) / max(p_max - p_min, 1e-8) * 255, 0, 255).astype(np.uint8)
+
+        Image.fromarray(preview).save(original_preview_path)
+        print(f"Original preview saved: {original_preview_path}")
+    except Exception as e:
+        print(f"Warning: could not generate original preview: {e}")
+        original_preview_path = None
+        # Still try to get dimensions from the NPY
+        try:
+            npy_data = np.load(npy_path)
+            image_height, image_width = npy_data.shape[:2]
+        except Exception:
+            image_height, image_width = 0, 0
 
     # ---------------------------------------------------------
     # 6. Create tiles
@@ -356,36 +401,50 @@ async def upload_pds4(
     )
 
     # ---------------------------------------------------------
-    # 7. Process first 10 tiles
+    # 7. Process first N tiles
     # ---------------------------------------------------------
 
-    processed_tiles = process_demo_tiles()
+    try:
+        processed_tiles = process_demo_tiles()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"AI enhancement failed: {e}"
+        )
 
     # ---------------------------------------------------------
-    # 8. Stitch the 10 enhanced tiles
+    # 8. Stitch the enhanced tiles
     # ---------------------------------------------------------
 
-    stitched_path = stitch_demo_tiles()
+    try:
+        stitched_path = stitch_demo_tiles()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Tile stitching failed: {e}"
+        )
+
+    elapsed = round(time.time() - start_time, 2)
 
     # ---------------------------------------------------------
     # 9. Return result
     # ---------------------------------------------------------
 
+    # Return friendly, browser-accessible paths for frontend use (all under /outputs)
     return {
-
         "message": "PDS4 image processed successfully.",
-
         "filename": file.filename,
-
-        "selected_img": str(img_path),
-
-        "selected_xml": str(xml_path),
-
-        "converted_npy": str(npy_path),
-
+        # Expose only basenames for uploaded/selected source files
+        "selected_img": Path(img_path).name,
+        "selected_xml": Path(xml_path).name,
+        # Converted NPY lives under outputs/converted
+        "converted_npy": f"outputs/{Path(npy_path).name}",
         "total_tiles": total_tiles,
-
         "processed_tiles": len(processed_tiles),
-
-        "stitched_demo": str(stitched_path)
+        # Stitched and preview images served from the /outputs static mount
+        "stitched_demo": f"outputs/{Path(stitched_path).name}",
+        "original_preview": (f"outputs/{Path(original_preview_path).name}" if original_preview_path else None),
+        "image_width": image_width,
+        "image_height": image_height,
+        "processing_time_seconds": elapsed,
     }

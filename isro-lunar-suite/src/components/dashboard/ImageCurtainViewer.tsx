@@ -8,12 +8,16 @@ interface ImageCurtainViewerProps {
   dataset: LunarDataset;
   currentFilter: FilterMode;
   currentHapke: HapkeParameters;
+  originalImageUrl?: string;
+  enhancedImageUrl?: string;
 }
 
 export const ImageCurtainViewer: React.FC<ImageCurtainViewerProps> = ({
   dataset,
   currentFilter,
   currentHapke,
+  originalImageUrl,
+  enhancedImageUrl,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const rawCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -41,6 +45,53 @@ export const ImageCurtainViewer: React.FC<ImageCurtainViewerProps> = ({
     const enhancedCtx = enhancedCanvas.getContext('2d');
     if (!rawCtx || !enhancedCtx) return;
 
+    const drawImageToCanvas = (ctx: CanvasRenderingContext2D, image: HTMLImageElement, width: number, height: number) => {
+      ctx.clearRect(0, 0, width, height);
+      const scale = Math.max(width / image.width, height / image.height);
+      const drawWidth = image.width * scale;
+      const drawHeight = image.height * scale;
+      const offsetX = (width - drawWidth) / 2;
+      const offsetY = (height - drawHeight) / 2;
+      ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+    };
+
+    if (originalImageUrl && enhancedImageUrl) {
+      const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
+        img.src = src;
+      });
+
+      void Promise.all([
+        loadImage(originalImageUrl),
+        loadImage(enhancedImageUrl),
+      ])
+        .then(([originalImg, enhancedImg]) => {
+          drawImageToCanvas(rawCtx, originalImg, rawCanvas.width, rawCanvas.height);
+          drawImageToCanvas(enhancedCtx, enhancedImg, enhancedCanvas.width, enhancedCanvas.height);
+        })
+        .catch(() => {
+          drawRawSensorView(rawCtx, CANVAS_SIZE, CANVAS_SIZE, dataset.id);
+          const normRatio = getPhotometricCorrectionRatio(
+            dataset.geometry.incidenceDeg,
+            dataset.geometry.emissionDeg,
+            dataset.geometry.phaseDeg,
+            currentHapke
+          );
+          drawEnhancedSurfaceView(
+            enhancedCtx,
+            CANVAS_SIZE,
+            CANVAS_SIZE,
+            dataset.id,
+            currentFilter,
+            currentHapke,
+            normRatio
+          );
+        });
+      return;
+    }
+
     drawRawSensorView(rawCtx, CANVAS_SIZE, CANVAS_SIZE, dataset.id);
 
     const normRatio = getPhotometricCorrectionRatio(
@@ -59,7 +110,7 @@ export const ImageCurtainViewer: React.FC<ImageCurtainViewerProps> = ({
       currentHapke,
       normRatio
     );
-  }, [dataset, currentFilter, currentHapke]);
+  }, [dataset, currentFilter, currentHapke, originalImageUrl, enhancedImageUrl]);
 
   useEffect(() => {
     renderCanvases();
@@ -251,11 +302,11 @@ export const ImageCurtainViewer: React.FC<ImageCurtainViewerProps> = ({
 
         {/* Clean Pill Badges */}
         <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-md bg-slate-950/80 backdrop-blur-sm border border-slate-800 text-[11px] font-medium text-slate-300">
-          Raw Sensor (DN)
+          {originalImageUrl ? 'Original' : 'Raw Sensor (DN)'}
         </div>
 
         <div className="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-md bg-slate-950/80 backdrop-blur-sm border border-slate-800 text-[11px] font-medium text-sky-300">
-          Photometrically Corrected
+          {enhancedImageUrl ? 'AI Enhanced' : 'Photometrically Corrected'}
         </div>
 
         {/* Minimal Probe indicator */}

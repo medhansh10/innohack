@@ -6,15 +6,18 @@ import { HapkeControls } from './HapkeControls';
 import { PhotometricChart } from './PhotometricChart';
 import { LunarGlobe3D } from './LunarGlobe3D';
 import { ExportBar } from './ExportBar';
+import { getOutputUrl, EnhancementResult } from '../../api/enhancementApi';
 
 interface MissionControlProps {
   dataset: LunarDataset;
   onShowToast: (type: 'success' | 'info' | 'warning' | 'error', title: string, desc: string) => void;
+  enhancementResult?: EnhancementResult | null;
 }
 
 export const MissionControl: React.FC<MissionControlProps> = ({
   dataset,
   onShowToast,
+  enhancementResult = null,
 }) => {
   const [currentFilter, setCurrentFilter] = useState<FilterMode>('REGOLITH_MONO');
   const [currentHapke, setCurrentHapke] = useState<HapkeParameters>(dataset.currentHapke);
@@ -23,6 +26,9 @@ export const MissionControl: React.FC<MissionControlProps> = ({
     setCurrentHapke(dataset.initialHapke);
     onShowToast('info', 'Parameters Reset', 'Restored baseline photometric values.');
   };
+
+  const originalUrl = enhancementResult?.original_preview ? getOutputUrl(enhancementResult.original_preview) : undefined;
+  const enhancedUrl = enhancementResult?.stitched_demo ? getOutputUrl(enhancementResult.stitched_demo) : undefined;
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 lg:px-8 py-6 space-y-6">
@@ -53,6 +59,8 @@ export const MissionControl: React.FC<MissionControlProps> = ({
             dataset={dataset}
             currentFilter={currentFilter}
             currentHapke={currentHapke}
+            originalImageUrl={originalUrl}
+            enhancedImageUrl={enhancedUrl}
           />
         </div>
 
