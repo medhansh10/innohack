@@ -1,17 +1,13 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import LoadingState from '@/components/ui/loading-state';
 import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
-  Columns,
-  SplitSquareVertical,
-  Sparkles,
-  Image as ImageIcon,
-  Loader2,
   Sun,
   Contrast,
-  Search
+  Search,
+  Sparkles
 } from 'lucide-react';
 
 interface ImageCurtainViewerProps {
@@ -25,7 +21,7 @@ interface ImageCurtainViewerProps {
   processingTime?: number;
 }
 
-type ViewMode = 'CURTAIN' | 'SIDE_BY_SIDE' | 'ENHANCED_ONLY' | 'ORIGINAL_ONLY';
+export type ViewMode = 'CURTAIN' | 'SIDE_BY_SIDE' | 'ENHANCED_ONLY' | 'ORIGINAL_ONLY';
 
 export const ImageCurtainViewer: React.FC<ImageCurtainViewerProps> = ({
   originalImageUrl,
@@ -38,8 +34,6 @@ export const ImageCurtainViewer: React.FC<ImageCurtainViewerProps> = ({
   processingTime = 0,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const rawCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const enhancedCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [sliderPos, setSliderPos] = useState<number>(50);
   const [isDraggingSlider, setIsDraggingSlider] = useState<boolean>(false);
@@ -69,91 +63,16 @@ export const ImageCurtainViewer: React.FC<ImageCurtainViewerProps> = ({
   const [brightness, setBrightness] = useState<number>(105);
   const [contrast, setContrast] = useState<number>(115);
 
-  const [loadedOriginal, setLoadedOriginal] = useState<HTMLImageElement | null>(null);
-  const [loadedEnhanced, setLoadedEnhanced] = useState<HTMLImageElement | null>(null);
-  const [isLoadingImages, setIsLoadingImages] = useState<boolean>(false);
+  const [origLoaded, setOrigLoaded] = useState<boolean>(false);
+  const [enhLoaded, setEnhLoaded] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const CANVAS_SIZE = 2048;
-
-  // Pre-load images once whenever URLs change
+  // Reset image load states when URLs change
   useEffect(() => {
-    if (!originalImageUrl && !enhancedImageUrl) return;
-
-    setIsLoadingImages(true);
+    setOrigLoaded(false);
+    setEnhLoaded(false);
     setLoadError(null);
-
-    const loadImg = (url: string) =>
-      new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error(`Failed to load image from ${url}`));
-        img.src = `${url}?t=${Date.now()}`;
-      });
-
-    const promises: Promise<HTMLImageElement>[] = [];
-    if (originalImageUrl) promises.push(loadImg(originalImageUrl));
-    if (enhancedImageUrl) promises.push(loadImg(enhancedImageUrl));
-
-    Promise.all(promises)
-      .then(([orig, enh]) => {
-        setLoadedOriginal(orig || null);
-        setLoadedEnhanced(enh || null);
-        setIsLoadingImages(false);
-      })
-      .catch((err) => {
-        console.warn('Image preloading error:', err);
-        setLoadError('Failed to fetch image files from backend.');
-        setIsLoadingImages(false);
-      });
   }, [originalImageUrl, enhancedImageUrl]);
-
-  const drawCanvases = useCallback(() => {
-    const rawCanvas = rawCanvasRef.current;
-    const enhancedCanvas = enhancedCanvasRef.current;
-    if (!rawCanvas || !enhancedCanvas) return;
-
-    const rawCtx = rawCanvas.getContext('2d');
-    const enhancedCtx = enhancedCanvas.getContext('2d');
-    if (!rawCtx || !enhancedCtx) return;
-
-    rawCtx.imageSmoothingEnabled = zoom <= 2.5;
-    if (zoom > 2.5) {
-      rawCtx.imageSmoothingQuality = 'low';
-    }
-
-    enhancedCtx.imageSmoothingEnabled = true;
-    enhancedCtx.imageSmoothingQuality = 'high';
-
-    const drawToCanvas = (
-      ctx: CanvasRenderingContext2D,
-      img: HTMLImageElement | null,
-      width: number,
-      height: number,
-      label: string
-    ) => {
-      ctx.clearRect(0, 0, width, height);
-
-      if (img && img.naturalWidth > 0) {
-        ctx.drawImage(img, 0, 0, width, height);
-      } else {
-        ctx.fillStyle = '#060608';
-        ctx.fillRect(0, 0, width, height);
-        ctx.fillStyle = '#52525b';
-        ctx.font = '26px system-ui, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(label, width / 2, height / 2);
-      }
-    };
-
-    drawToCanvas(rawCtx, loadedOriginal, rawCanvas.width, rawCanvas.height, 'Original Imagery');
-    drawToCanvas(enhancedCtx, loadedEnhanced, enhancedCanvas.width, enhancedCanvas.height, 'AI Enhanced Surface');
-  }, [loadedOriginal, loadedEnhanced, zoom]);
-
-  useEffect(() => {
-    drawCanvases();
-  }, [drawCanvases]);
 
   // Clamp pan based on current zoom and container dimensions
   const clampPan = (newX: number, newY: number, targetZoom: number) => {
@@ -196,13 +115,13 @@ export const ImageCurtainViewer: React.FC<ImageCurtainViewerProps> = ({
 
     const clientX = e.clientX - rect.left;
     const clientY = e.clientY - rect.top;
-    const normX = Math.max(0, Math.min(1, clientX / rect.width));
-    const normY = Math.max(0, Math.min(1, clientY / rect.height));
+    const normX = Math.max(0, Math.min(1, clientX / Math.max(1, rect.width)));
+    const normY = Math.max(0, Math.min(1, clientY / Math.max(1, rect.height)));
 
     setMousePos({ x: clientX, y: clientY, normX, normY });
 
     if (isDraggingSlider) {
-      const newPos = Math.max(2, Math.min(98, (clientX / rect.width) * 100));
+      const newPos = Math.max(1, Math.min(99, (clientX / rect.width) * 100));
       setSliderPos(newPos);
       return;
     }
@@ -248,7 +167,7 @@ export const ImageCurtainViewer: React.FC<ImageCurtainViewerProps> = ({
       setZoom(1.0);
       setPan({ x: 0, y: 0 });
     } else {
-      setZoom(3.5);
+      setZoom(3.0);
     }
   };
 
@@ -333,7 +252,7 @@ export const ImageCurtainViewer: React.FC<ImageCurtainViewerProps> = ({
 
         {/* Center: Brightness & Contrast Controls */}
         <div className="flex items-center gap-4 bg-[#141417] rounded-md border border-white/[0.06] px-3.5 py-1.5 text-xs text-zinc-300">
-          <div className="flex items-center gap-2" title="Adjust Brightness">
+          <div className="flex items-center gap-2" title="Adjust Radiance Brightness">
             <Sun className="w-3.5 h-3.5 text-zinc-400" />
             <input
               type="range"
@@ -347,7 +266,7 @@ export const ImageCurtainViewer: React.FC<ImageCurtainViewerProps> = ({
             <span className="text-[10px] font-mono text-zinc-400 min-w-[2rem]">{brightness}%</span>
           </div>
 
-          <div className="flex items-center gap-2 pl-3 border-l border-white/[0.08]" title="Adjust Contrast">
+          <div className="flex items-center gap-2 pl-3 border-l border-white/[0.08]" title="Adjust Shadow/Highlight Contrast">
             <Contrast className="w-3.5 h-3.5 text-zinc-400" />
             <input
               type="range"
@@ -455,18 +374,20 @@ export const ImageCurtainViewer: React.FC<ImageCurtainViewerProps> = ({
             </div>
             {originalImageUrl ? (
               <div
-                className="w-full h-full origin-center transition-transform duration-75 ease-out"
+                className="w-full h-full origin-center transition-transform duration-75 ease-out flex items-center justify-center"
                 style={{ ...transformStyle, ...filterStyle }}
               >
                 <img
                   src={originalImageUrl}
                   alt="Original Swath"
-                  className={`w-full h-full object-contain bg-black ${zoom > 2.5 ? 'image-rendering-pixelated' : ''}`}
+                  onLoad={() => setOrigLoaded(true)}
+                  onError={() => setLoadError('Failed to load raw image')}
+                  className={`w-full h-full object-contain pointer-events-none ${zoom > 2.5 ? 'image-rendering-pixelated' : ''}`}
                 />
               </div>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs font-mono">
-                No Original Image
+                No Original Image Available
               </div>
             )}
           </div>
@@ -478,24 +399,26 @@ export const ImageCurtainViewer: React.FC<ImageCurtainViewerProps> = ({
             </div>
             {enhancedImageUrl ? (
               <div
-                className="w-full h-full origin-center transition-transform duration-75 ease-out"
+                className="w-full h-full origin-center transition-transform duration-75 ease-out flex items-center justify-center"
                 style={{ ...transformStyle, ...filterStyle }}
               >
                 <img
                   src={enhancedImageUrl}
                   alt="AI Enhanced"
-                  className="w-full h-full object-contain bg-black"
+                  onLoad={() => setEnhLoaded(true)}
+                  onError={() => setLoadError('Failed to load enhanced image')}
+                  className="w-full h-full object-contain pointer-events-none"
                 />
               </div>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs font-mono">
-                No Enhanced Image
+                No Enhanced Image Available
               </div>
             )}
           </div>
         </div>
       ) : (
-        /* CURTAIN / SINGLE VIEW */
+        /* CURTAIN / SINGLE VIEW (CURTAIN, ENHANCED_ONLY, ORIGINAL_ONLY) */
         <div
           ref={containerRef}
           onWheel={handleWheel}
@@ -515,72 +438,72 @@ export const ImageCurtainViewer: React.FC<ImageCurtainViewerProps> = ({
               : 'cursor-default'
           }`}
         >
-          {isLoadingImages && (
-            <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-              <div className="px-5 py-3 rounded-md bg-[#121215] border border-white/10 shadow-2xl">
-                <LoadingState label="Calibrating Sensor Swath" variant="Drive" />
-              </div>
-            </div>
-          )}
-
           {loadError && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-sm bg-[#18181b] border border-white/20 text-zinc-300 text-xs font-mono">
               {loadError}
             </div>
           )}
 
-          {/* Canvas Wrapper with Unified Hardware Pan & Zoom */}
+          {/* Canvas & Image Wrapper with Hardware Pan & Zoom */}
           <div
             className="absolute inset-0 origin-center transition-transform duration-75 ease-out"
             style={{ ...transformStyle, ...filterStyle }}
           >
-            {/* Enhanced Layer */}
-            {(viewMode === 'CURTAIN' || viewMode === 'ENHANCED_ONLY') && (
-              <canvas
-                ref={enhancedCanvasRef}
-                width={CANVAS_SIZE}
-                height={CANVAS_SIZE}
-                className="absolute inset-0 w-full h-full object-contain"
+            {/* Base Layer: AI Enhanced Image */}
+            {(viewMode === 'CURTAIN' || viewMode === 'ENHANCED_ONLY') && enhancedImageUrl && (
+              <img
+                src={enhancedImageUrl}
+                alt="AI Enhanced Surface"
+                onLoad={() => setEnhLoaded(true)}
+                onError={() => setLoadError('Failed to load enhanced image')}
+                className="absolute inset-0 w-full h-full object-contain pointer-events-none"
               />
             )}
 
-            {/* Original Layer (Clipped in CURTAIN mode) */}
-            {(viewMode === 'CURTAIN' || viewMode === 'ORIGINAL_ONLY') && (
+            {/* Overlaid Clipped Layer: Original Image */}
+            {(viewMode === 'CURTAIN' || viewMode === 'ORIGINAL_ONLY') && originalImageUrl && (
               <div
                 className="absolute inset-0 overflow-hidden"
-                style={{ width: viewMode === 'CURTAIN' ? `${sliderPos}%` : '100%' }}
+                style={{
+                  clipPath: viewMode === 'CURTAIN' ? `polygon(0 0, ${sliderPos}% 0, ${sliderPos}% 100%, 0 100%)` : undefined,
+                  width: '100%',
+                  height: '100%',
+                }}
               >
-                <canvas
-                  ref={rawCanvasRef}
-                  width={CANVAS_SIZE}
-                  height={CANVAS_SIZE}
-                  className="absolute inset-0 w-full h-full object-contain max-w-none"
-                  style={{ width: containerRef.current ? `${containerRef.current.clientWidth}px` : '100%' }}
+                <img
+                  src={originalImageUrl}
+                  alt="Original Raw Swath"
+                  onLoad={() => setOrigLoaded(true)}
+                  onError={() => setLoadError('Failed to load raw image')}
+                  className={`w-full h-full object-contain pointer-events-none ${zoom > 2.5 ? 'image-rendering-pixelated' : ''}`}
                 />
               </div>
             )}
           </div>
 
-          {/* Curtain Divider Line */}
+          {/* Curtain Divider Line & Handle */}
           {viewMode === 'CURTAIN' && (
             <div
               className="absolute top-0 bottom-0 z-20 flex items-center justify-center pointer-events-none"
               style={{ left: `${sliderPos}%` }}
             >
-              <div className="w-[1px] h-full bg-white/70 shadow-sm" />
+              <div className="w-[1.5px] h-full bg-white/80 shadow-[0_0_10px_rgba(255,255,255,0.4)]" />
               <div
                 onPointerDown={handleDividerPointerDown}
-                className="absolute w-7 h-7 rounded-full bg-[#121215] border border-white/80 flex items-center justify-center pointer-events-auto cursor-ew-resize hover:scale-105 transition-transform shadow-lg"
+                className="absolute w-8 h-8 rounded-full bg-[#121215] border border-white/80 flex items-center justify-center pointer-events-auto cursor-ew-resize hover:scale-110 active:scale-95 transition-transform shadow-2xl"
               >
-                <div className="w-2.5 h-0.5 bg-zinc-300 rounded-full" />
+                <div className="flex items-center gap-0.5">
+                  <div className="w-0.5 h-3 bg-zinc-300 rounded-full" />
+                  <div className="w-0.5 h-3 bg-zinc-300 rounded-full" />
+                </div>
               </div>
             </div>
           )}
 
           {/* Loupe Lens Floating Magnifier */}
-          {isLoupeActive && loadedEnhanced && (
+          {isLoupeActive && enhancedImageUrl && (
             <div
-              className="absolute z-30 pointer-events-none w-44 h-44 rounded-full border border-white/70 shadow-2xl overflow-hidden transform -translate-x-1/2 -translate-y-1/2 bg-black"
+              className="absolute z-30 pointer-events-none w-48 h-48 rounded-full border-2 border-white/80 shadow-2xl overflow-hidden transform -translate-x-1/2 -translate-y-1/2 bg-black"
               style={{
                 left: `${mousePos.x}px`,
                 top: `${mousePos.y}px`,
@@ -596,13 +519,13 @@ export const ImageCurtainViewer: React.FC<ImageCurtainViewerProps> = ({
                   ...filterStyle,
                 }}
               />
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-sm bg-black/90 border border-white/20 text-[9px] font-mono text-zinc-300 uppercase tracking-wider">
-                4x Lens
+              <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-sm bg-black/90 border border-white/20 text-[9px] font-mono text-zinc-200 uppercase tracking-wider shadow">
+                4x Sensor Lens
               </div>
             </div>
           )}
 
-          {/* Floating Badges */}
+          {/* Floating Mode Badges */}
           {(viewMode === 'CURTAIN' || viewMode === 'ORIGINAL_ONLY') && (
             <div className="absolute top-4 left-4 z-10 px-2.5 py-1 rounded-sm bg-black/80 backdrop-blur-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-wider text-zinc-400">
               Original Swath
@@ -615,10 +538,10 @@ export const ImageCurtainViewer: React.FC<ImageCurtainViewerProps> = ({
             </div>
           )}
 
-          {/* Zoom hint badge */}
+          {/* Zoom & Navigation Hint */}
           {zoom > 1.0 && (
-            <div className="absolute bottom-4 right-4 z-10 px-2.5 py-1 rounded-sm bg-black/80 backdrop-blur-sm border border-white/[0.08] text-[10px] font-mono text-zinc-500">
-              Drag to move · Scroll wheel to zoom · Double-click to reset
+            <div className="absolute bottom-4 right-4 z-10 px-2.5 py-1 rounded-sm bg-black/80 backdrop-blur-sm border border-white/[0.08] text-[10px] font-mono text-zinc-400">
+              Drag to pan · Scroll to zoom · Double-click to reset
             </div>
           )}
         </div>
@@ -646,3 +569,4 @@ export const ImageCurtainViewer: React.FC<ImageCurtainViewerProps> = ({
     </div>
   );
 };
+

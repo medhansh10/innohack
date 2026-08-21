@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   HapkeAnalysis,
   getOutputUrl
@@ -10,7 +10,11 @@ import {
   Compass,
   Layers,
   Sparkles,
-  ExternalLink
+  Palette,
+  Info,
+  ShieldAlert,
+  ShieldCheck,
+  Activity
 } from 'lucide-react';
 
 interface HapkeAnalysisSectionProps {
@@ -64,7 +68,7 @@ export const HapkeAnalysisSection: React.FC<HapkeAnalysisSectionProps> = ({ anal
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm bg-white/[0.04] border border-white/[0.08] text-zinc-400 font-mono text-[11px] uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               PDS4 Photometric QA Audit
             </span>
             <span className="text-zinc-600 font-mono text-xs">|</span>
@@ -74,7 +78,7 @@ export const HapkeAnalysisSection: React.FC<HapkeAnalysisSectionProps> = ({ anal
             Photometric Calibration & Scientific Reliability Report
           </h3>
           <p className="text-xs text-zinc-400 max-w-2xl leading-relaxed">
-            Physical validation of Real-ESRGAN super-resolution against Chandrayaan-2 lunar surface reflectance geometry and sensor noise thresholds.
+            Physical validation of Real-ESRGAN super-resolution against Chandrayaan-2 lunar surface reflectance geometry, shadow thresholds, and photometric colorimetry.
           </p>
         </div>
 
@@ -89,16 +93,17 @@ export const HapkeAnalysisSection: React.FC<HapkeAnalysisSectionProps> = ({ anal
           <div className="h-8 w-[1px] bg-white/[0.08]" />
           <div className="text-left font-mono text-[11px] leading-tight text-zinc-400">
             <div>PHYSICALLY</div>
-            <div className="text-zinc-200 font-semibold">VERIFIED</div>
+            <div className="text-emerald-400 font-semibold">VERIFIED</div>
           </div>
         </div>
       </div>
 
-      {/* 2. Structured Reliability Breakdown Table */}
+      {/* 2. Structured Reliability Breakdown Table with Color Codes */}
       <div className="space-y-3">
         <div className="flex items-center justify-between text-xs">
-          <span className="font-mono text-[11px] uppercase tracking-wider text-zinc-400">
-            Surface Illumination Regimes & Feature Validity
+          <span className="font-mono text-[11px] uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+            <Activity className="w-3.5 h-3.5 text-zinc-400" />
+            <span>Surface Illumination Regimes & Feature Validity</span>
           </span>
           <span className="text-zinc-500 font-mono text-[11px]">3 Classified Regimes</span>
         </div>
@@ -107,64 +112,139 @@ export const HapkeAnalysisSection: React.FC<HapkeAnalysisSectionProps> = ({ anal
           <div className="grid grid-cols-12 px-4 py-2.5 bg-white/[0.02] border-b border-white/[0.08] font-mono text-[10px] text-zinc-500 uppercase tracking-wider">
             <div className="col-span-4 sm:col-span-3">Terrain Regime</div>
             <div className="col-span-2 text-right pr-4">Coverage</div>
-            <div className="col-span-3 hidden sm:block">Radiometric Status</div>
+            <div className="col-span-3 hidden sm:block">Color Encoding</div>
             <div className="col-span-6 sm:col-span-4">Scientific Verdict</div>
           </div>
 
           {/* Row 1: Sunlit */}
           <div className="grid grid-cols-12 items-center px-4 py-3.5 border-b border-white/[0.05] hover:bg-white/[0.01] transition-colors text-xs">
             <div className="col-span-4 sm:col-span-3 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 shrink-0" />
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)] shrink-0" />
               <span className="font-medium text-zinc-200">Sunlit Crater Rims</span>
             </div>
-            <div className="col-span-2 text-right pr-4 font-mono font-medium text-zinc-200">
+            <div className="col-span-2 text-right pr-4 font-mono font-medium text-emerald-400">
               {illuminatedPct}%
             </div>
-            <div className="col-span-3 hidden sm:block font-mono text-[11px] text-zinc-400">
-              High Photon Count (Direct)
+            <div className="col-span-3 hidden sm:flex items-center gap-2 font-mono text-[11px]">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/30 text-emerald-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span>#10B981 · High Flux</span>
+              </span>
             </div>
             <div className="col-span-6 sm:col-span-4 text-zinc-300 text-[11px] leading-relaxed">
-              <strong className="text-zinc-100 font-medium">Authentic Geology:</strong> Ridge crests, boulders, and ejecta rims are certified physical ground truth.
+              <strong className="text-emerald-400 font-medium">Authentic Geology:</strong> Ridge crests, boulders, and ejecta rims are certified physical ground truth.
             </div>
           </div>
 
           {/* Row 2: Penumbra */}
           <div className="grid grid-cols-12 items-center px-4 py-3.5 border-b border-white/[0.05] hover:bg-white/[0.01] transition-colors text-xs">
             <div className="col-span-4 sm:col-span-3 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 shrink-0" />
+              <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)] shrink-0" />
               <span className="font-medium text-zinc-300">Penumbra Slopes</span>
             </div>
-            <div className="col-span-2 text-right pr-4 font-mono font-medium text-zinc-300">
+            <div className="col-span-2 text-right pr-4 font-mono font-medium text-amber-400">
               {penumbraPct}%
             </div>
-            <div className="col-span-3 hidden sm:block font-mono text-[11px] text-zinc-500">
-              Grazing Transition Zone
+            <div className="col-span-3 hidden sm:flex items-center gap-2 font-mono text-[11px]">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-950/60 border border-amber-500/30 text-amber-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                <span>#F59E0B · Grazing</span>
+              </span>
             </div>
             <div className="col-span-6 sm:col-span-4 text-zinc-400 text-[11px] leading-relaxed">
-              <strong className="text-zinc-200 font-medium">Topographic Slopes:</strong> Macro-slope contours are reliable; verify sub-meter textures before measurement.
+              <strong className="text-amber-400 font-medium">Topographic Slopes:</strong> Macro-slope contours are reliable; verify sub-meter textures before measurement.
             </div>
           </div>
 
           {/* Row 3: Deep Shadow */}
           <div className="grid grid-cols-12 items-center px-4 py-3.5 hover:bg-white/[0.01] transition-colors text-xs">
             <div className="col-span-4 sm:col-span-3 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-zinc-600 shrink-0" />
+              <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)] shrink-0" />
               <span className="font-medium text-zinc-400">Deep Shadow Floors</span>
             </div>
-            <div className="col-span-2 text-right pr-4 font-mono font-medium text-zinc-400">
+            <div className="col-span-2 text-right pr-4 font-mono font-medium text-rose-400">
               {shadowPct}%
             </div>
-            <div className="col-span-3 hidden sm:block font-mono text-[11px] text-zinc-600">
-              Zero Optical Signal (DN &lt; 20)
+            <div className="col-span-3 hidden sm:flex items-center gap-2 font-mono text-[11px]">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-rose-950/60 border border-rose-500/30 text-rose-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                <span>#F43F5E · DN &lt; 20</span>
+              </span>
             </div>
             <div className="col-span-6 sm:col-span-4 text-zinc-400 text-[11px] leading-relaxed">
-              <strong className="text-zinc-300 font-medium">Hallucination Hazard:</strong> Zero optical signal. AI details inside deep shadow are flagged noise artifacts.
+              <strong className="text-rose-400 font-medium">Hallucination Hazard:</strong> Zero optical signal. AI details inside deep shadow are flagged noise artifacts.
             </div>
           </div>
         </div>
       </div>
 
-      {/* 3. Scientific Executive Briefing Document Box */}
+      {/* 3. Scientific Radiometric Color Scale Legend Bar */}
+      <div className="rounded-md bg-[#121215] border border-white/[0.08] p-5 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-white/[0.06]">
+          <div className="flex items-center gap-2">
+            <Palette className="w-4 h-4 text-zinc-400" />
+            <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-zinc-300">
+              Hapke Radiometric Colorimetric Spectrum & Classification Scale
+            </h4>
+          </div>
+          <span className="text-[10px] font-mono text-zinc-500">
+            TURBO / PHYSICAL PHOTON FLUX MAPPING
+          </span>
+        </div>
+
+        {/* Continuous Colormap Gradient Bar */}
+        <div className="space-y-2 pt-1">
+          <div className="relative h-4 rounded-full overflow-hidden bg-black border border-white/10 shadow-inner">
+            <div
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(90deg, #30123b 0%, #28bbec 25%, #a2fc3c 50%, #fb8022 75%, #7a0403 100%)'
+              }}
+            />
+          </div>
+
+          {/* Scale Intervals & Hex Labels */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 text-[11px] font-mono">
+            <div className="p-2 rounded bg-black/40 border border-white/[0.04] space-y-1">
+              <div className="flex items-center gap-1.5 text-zinc-300">
+                <span className="w-2 h-2 rounded-full bg-[#30123b] border border-white/30" />
+                <span className="font-semibold text-zinc-200">0.00 – 0.20</span>
+              </div>
+              <div className="text-[10px] text-rose-300">#30123B · Deep Shadow</div>
+              <div className="text-[9px] text-zinc-500">Photon-starved (Artifact Hazard)</div>
+            </div>
+
+            <div className="p-2 rounded bg-black/40 border border-white/[0.04] space-y-1">
+              <div className="flex items-center gap-1.5 text-zinc-300">
+                <span className="w-2 h-2 rounded-full bg-[#28bbec] border border-white/30" />
+                <span className="font-semibold text-zinc-200">0.20 – 0.50</span>
+              </div>
+              <div className="text-[10px] text-sky-300">#28BBEC · Penumbra</div>
+              <div className="text-[9px] text-zinc-500">Grazing slope transition</div>
+            </div>
+
+            <div className="p-2 rounded bg-black/40 border border-white/[0.04] space-y-1">
+              <div className="flex items-center gap-1.5 text-zinc-300">
+                <span className="w-2 h-2 rounded-full bg-[#a2fc3c] border border-white/30" />
+                <span className="font-semibold text-zinc-200">0.50 – 0.75</span>
+              </div>
+              <div className="text-[10px] text-lime-300">#A2FC3C · Valid Terrain</div>
+              <div className="text-[9px] text-zinc-500">High topographic fidelity</div>
+            </div>
+
+            <div className="p-2 rounded bg-black/40 border border-white/[0.04] space-y-1">
+              <div className="flex items-center gap-1.5 text-zinc-300">
+                <span className="w-2 h-2 rounded-full bg-[#fb8022] border border-white/30" />
+                <span className="font-semibold text-zinc-200">0.75 – 1.00</span>
+              </div>
+              <div className="text-[10px] text-amber-300">#FB8022 · Sunlit Crests</div>
+              <div className="text-[9px] text-zinc-500">Certified Ground Truth Albedo</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Scientific Executive Briefing Document Box */}
       <div className="rounded-md bg-[#121215] border border-white/[0.08] p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/[0.06]">
           <div className="flex items-center gap-2">
@@ -199,7 +279,7 @@ export const HapkeAnalysisSection: React.FC<HapkeAnalysisSectionProps> = ({ anal
         </div>
       </div>
 
-      {/* 4. Confidence Maps & Photographic Evidence */}
+      {/* 5. Confidence Maps & Photographic Evidence */}
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -287,11 +367,18 @@ export const HapkeAnalysisSection: React.FC<HapkeAnalysisSectionProps> = ({ anal
                   </button>
                 </div>
               </div>
-              <div className="p-3.5 bg-[#121215] border-t border-white/[0.06] space-y-1">
+              <div className="p-3.5 bg-[#121215] border-t border-white/[0.06] space-y-2">
                 <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-zinc-200">Confidence Scale</span>
-                  <span className="text-zinc-400">0.0 (Red) → 1.0 (Blue)</span>
+                  <span className="text-zinc-200">Color Spectrum</span>
+                  <span className="inline-flex items-center gap-1 text-[10px] text-zinc-400">
+                    <span className="w-2 h-2 rounded-full bg-[#30123b]" />
+                    <span>0.00</span>
+                    <span>→</span>
+                    <span className="w-2 h-2 rounded-full bg-[#fb8022]" />
+                    <span>1.00</span>
+                  </span>
                 </div>
+                <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: 'linear-gradient(90deg, #30123b, #28bbec, #a2fc3c, #fb8022)' }} />
                 <p className="text-[11px] text-zinc-400 leading-normal">
                   Continuous per-pixel radiometric score evaluated against Hapke incidence models.
                 </p>
@@ -328,10 +415,15 @@ export const HapkeAnalysisSection: React.FC<HapkeAnalysisSectionProps> = ({ anal
                   </button>
                 </div>
               </div>
-              <div className="p-3.5 bg-[#121215] border-t border-white/[0.06] space-y-1">
+              <div className="p-3.5 bg-[#121215] border-t border-white/[0.06] space-y-2">
                 <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-zinc-200">Overlay Composition</span>
-                  <span className="text-zinc-400">60% Image · 40% Map</span>
+                  <span className="text-zinc-200">Overlay Blend</span>
+                  <span className="text-[10px] text-zinc-400 font-mono">60% Swath · 40% Turbo</span>
+                </div>
+                <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-400">
+                  <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-white/10">Mono Swath</span>
+                  <span>+</span>
+                  <span className="px-1.5 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-500/30">Radiometric Field</span>
                 </div>
                 <p className="text-[11px] text-zinc-400 leading-normal">
                   Spatial registration of lunar crater topography with confidence gradient.
@@ -369,10 +461,14 @@ export const HapkeAnalysisSection: React.FC<HapkeAnalysisSectionProps> = ({ anal
                   </button>
                 </div>
               </div>
-              <div className="p-3.5 bg-[#121215] border-t border-white/[0.06] space-y-1">
+              <div className="p-3.5 bg-[#121215] border-t border-white/[0.06] space-y-2">
                 <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-zinc-200">Shadow Risk Mask</span>
-                  <span className="text-zinc-400">DN &lt; 20 Threshold</span>
+                  <span className="text-zinc-200">Shadow Risk Cutoff</span>
+                  <span className="text-[10px] text-rose-400 font-mono">DN &lt; 20 (0.08)</span>
+                </div>
+                <div className="flex items-center gap-2 text-[10px] font-mono">
+                  <span className="px-1.5 py-0.5 rounded bg-white/10 text-zinc-200 border border-white/20">White: Pass</span>
+                  <span className="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-500/40">Black: Masked</span>
                 </div>
                 <p className="text-[11px] text-zinc-400 leading-normal">
                   Exclusion mask pinpointing unilluminated floors where AI detail is rejected.
@@ -383,7 +479,7 @@ export const HapkeAnalysisSection: React.FC<HapkeAnalysisSectionProps> = ({ anal
         </div>
       </div>
 
-      {/* 5. Precision Instrument Geometry & Hapke Parameters Matrix */}
+      {/* 6. Precision Instrument Geometry & Hapke Parameters Matrix */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Illumination Geometry Table */}
         <div className="p-5 rounded-md bg-[#121215] border border-white/[0.08] space-y-3">
@@ -448,7 +544,7 @@ export const HapkeAnalysisSection: React.FC<HapkeAnalysisSectionProps> = ({ anal
             </div>
             <div className="p-2.5 rounded bg-black/40 border border-white/[0.04]">
               <div className="text-[10px] text-zinc-500 uppercase">Reflectance (I/F)</div>
-              <div className="text-zinc-100 font-medium text-sm mt-0.5">{analysis.theoretical_reflectance_if}</div>
+              <div className="text-emerald-400 font-medium text-sm mt-0.5">{analysis.theoretical_reflectance_if}</div>
             </div>
           </div>
         </div>

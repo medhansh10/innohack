@@ -32,8 +32,12 @@ export const MissionControl: React.FC<MissionControlProps> = ({
     }
   }, [enhancementResult]);
 
-  const originalUrl = enhancementResult?.original_preview ? getOutputUrl(enhancementResult.original_preview) : undefined;
-  const enhancedUrl = enhancementResult?.stitched_demo ? getOutputUrl(enhancementResult.stitched_demo) : undefined;
+  const originalUrl = enhancementResult?.original_preview
+    ? getOutputUrl(enhancementResult.original_preview)
+    : getOutputUrl('outputs/original_preview.png');
+  const enhancedUrl = enhancementResult?.stitched_demo
+    ? getOutputUrl(enhancementResult.stitched_demo)
+    : getOutputUrl('outputs/stitched_demo.png');
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 lg:px-8 py-6 space-y-6">

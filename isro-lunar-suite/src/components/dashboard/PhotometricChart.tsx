@@ -39,30 +39,30 @@ export const PhotometricChart: React.FC<PhotometricChartProps> = ({
   }, [points, maxReflectance]);
 
   return (
-    <div className="flex flex-col rounded-2xl bg-[#0d131f] border border-slate-800 p-5 space-y-3 shadow-sm">
-      <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
+    <div className="flex flex-col rounded-lg bg-[#0c0c0e] border border-white/[0.08] p-5 space-y-3 shadow-lg">
+      <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
         <div>
-          <h3 className="text-sm font-semibold text-slate-100">
+          <h3 className="text-sm font-semibold text-zinc-100">
             Reflectance Response
           </h3>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-zinc-400 font-mono">
             Bidirectional reflectance (I/F) vs. phase angle (α)
           </p>
         </div>
 
-        <div className="flex items-center gap-3 text-xs text-slate-400">
+        <div className="flex items-center gap-3 text-xs text-zinc-400 font-mono">
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-0.5 bg-sky-400 rounded-full" />
-            <span>Fitted Model</span>
+            <span className="w-2.5 h-0.5 bg-emerald-400 rounded-full" />
+            <span className="text-zinc-300">Fitted Hapke IMSA</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+            <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
             <span>Sample Points</span>
           </div>
         </div>
       </div>
 
-      <div className="w-full aspect-[2.5/1] bg-[#090e18] rounded-xl border border-slate-800/80 p-2">
+      <div className="w-full aspect-[2.5/1] bg-[#060608] rounded-md border border-white/[0.06] p-2">
         <svg viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} className="w-full h-full select-none">
           {/* X Grid */}
           {[0, 30, 60, 90].map((alpha) => {
@@ -74,13 +74,14 @@ export const PhotometricChart: React.FC<PhotometricChartProps> = ({
                   y1={PADDING.top}
                   x2={x}
                   y2={SVG_HEIGHT - PADDING.bottom}
-                  stroke="#1e293b"
+                  stroke="#1c1c20"
                 />
                 <text
                   x={x}
                   y={SVG_HEIGHT - PADDING.bottom + 14}
-                  fill="#64748b"
+                  fill="#71717a"
                   fontSize="9"
+                  fontFamily="monospace"
                   textAnchor="middle"
                 >
                   {alpha}°
@@ -100,13 +101,14 @@ export const PhotometricChart: React.FC<PhotometricChartProps> = ({
                   y1={y}
                   x2={SVG_WIDTH - PADDING.right}
                   y2={y}
-                  stroke="#1e293b"
+                  stroke="#1c1c20"
                 />
                 <text
                   x={PADDING.left - 6}
                   y={y + 3}
-                  fill="#64748b"
+                  fill="#71717a"
                   fontSize="9"
+                  fontFamily="monospace"
                   textAnchor="end"
                 >
                   {val.toFixed(1)}
@@ -119,7 +121,7 @@ export const PhotometricChart: React.FC<PhotometricChartProps> = ({
           <path
             d={hapkePath}
             fill="none"
-            stroke="#38bdf8"
+            stroke="#34d399"
             strokeWidth="2"
           />
 
@@ -132,7 +134,7 @@ export const PhotometricChart: React.FC<PhotometricChartProps> = ({
                 cx={scaleX(p.phaseAngle)}
                 cy={scaleY(p.observedData)}
                 r={2}
-                fill="#94a3b8"
+                fill="#a1a1aa"
               />
             ))}
         </svg>
